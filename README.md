@@ -1,56 +1,109 @@
-# **Finding Lane Lines on the Road** 
-[![Udacity - Self-Driving Car NanoDegree](https://s3.amazonaws.com/udacity-sdc/github/shield-carnd.svg)](http://www.udacity.com/drive)
+# Finding Lane Lines on the Road
 
-<img src="examples/laneLines_thirdPass.jpg" width="480" alt="Combined Image" />
+The goal of this project is to use computer vision techniques to locate the bounding lane markers on a road.
 
-Overview
+### Reflection
+
+#### Image processing pipeline
+
+Images and videos were provided with sample driving scenes from the motorist's perspective. Each image or frame of a video runs through a sequential series of transformations to emphasize objects of interest. In this case, the objects of interest are markings on the road that show the closest lane lines on either side of the imaginary center line of the scene (lane boundaries). After producing representations of the lane lines (straight lines of pixels), combine those lines to calculate up to two lines representing the right and left lane lines.
+
+##### Transformation pipeline
+
+Each step in the pipeline is described below to process a given image, the output from the previous step is fed into the input of the next step. Example image:
+
+
 ---
 
-When we drive, we use our eyes to decide where to go.  The lines on the road that show us where the lanes are act as our constant reference for where to steer the vehicle.  Naturally, one of the first things we would like to do in developing a self-driving car is to automatically detect lane lines using an algorithm.
+![Original sample image](./test_images/solidYellowCurve.jpg "Sample driving scene")
 
-In this project you will detect lane lines in images using Python and OpenCV.  OpenCV means "Open-Source Computer Vision", which is a package that has many useful tools for analyzing images.  
-
-To complete the project, two files will be submitted: a file containing project code and a file containing a brief write up explaining your solution. We have included template files to be used both for the [code](https://github.com/udacity/CarND-LaneLines-P1/blob/master/P1.ipynb) and the [writeup](https://github.com/udacity/CarND-LaneLines-P1/blob/master/writeup_template.md).The code file is called P1.ipynb and the writeup template is writeup_template.md 
-
-To meet specifications in the project, take a look at the requirements in the [project rubric](https://review.udacity.com/#!/rubrics/322/view)
-
-
-Creating a Great Writeup
----
-For this project, a great writeup should provide a detailed response to the "Reflection" section of the [project rubric](https://review.udacity.com/#!/rubrics/322/view). There are three parts to the reflection:
-
-1. Describe the pipeline
-
-2. Identify any shortcomings
-
-3. Suggest possible improvements
-
-We encourage using images in your writeup to demonstrate how your pipeline works.  
-
-All that said, please be concise!  We're not looking for you to write a book here: just a brief description.
-
-You're not required to use markdown for your writeup.  If you use another method please just submit a pdf of your writeup. Here is a link to a [writeup template file](https://github.com/udacity/CarND-LaneLines-P1/blob/master/writeup_template.md). 
-
-
-The Project
 ---
 
-## If you have already installed the [CarND Term1 Starter Kit](https://github.com/udacity/CarND-Term1-Starter-Kit/blob/master/README.md) you should be good to go!   If not, you should install the starter kit to get started on this project. ##
+1. Grayscale
 
-**Step 1:** Set up the [CarND Term1 Starter Kit](https://classroom.udacity.com/nanodegrees/nd013/parts/fbf77062-5703-404e-b60c-95b78b2f3f9e/modules/83ec35ee-1e02-48a5-bdb7-d244bd47c2dc/lessons/8c82408b-a217-4d09-b81d-1bda4c6380ef/concepts/4f1870e0-3849-43e4-b670-12e6f2d4b7a7) if you haven't already.
+    An image is represented as a 2-D array of pixel values. Each pixel value is represented by the RGB color model, three channels/dimensions of red, green and blue intensities. This step transforms RGB into a grayscale color model with only one channel, (or one dimension) with values ranging from 0-255 degrees of white color intensity. This is a useful/required format for further processing.
 
-**Step 2:** Open the code in a Jupyter Notebook
 
-You will complete the project code in a Jupyter notebook.  If you are unfamiliar with Jupyter Notebooks, check out <A HREF="https://www.packtpub.com/books/content/basics-jupyter-notebook-and-python" target="_blank">Cyrille Rossant's Basics of Jupyter Notebook and Python</A> to get started.
+---
 
-Jupyter is an Ipython notebook where you can run blocks of code and see results interactively.  All the code for this project is contained in a Jupyter notebook. To start Jupyter in your browser, use terminal to navigate to your project directory and then run the following command at the terminal prompt (be sure you've activated your Python 3 carnd-term1 environment as described in the [CarND Term1 Starter Kit](https://github.com/udacity/CarND-Term1-Starter-Kit/blob/master/README.md) installation instructions!):
+![Grayscale](./test_images_output/solidYellowCurve-grayscale.jpg "Grayscale")
 
-`> jupyter notebook`
+---
 
-A browser window will appear showing the contents of the current directory.  Click on the file called "P1.ipynb".  Another browser window will appear displaying the notebook.  Follow the instructions in the notebook to complete the project.  
+2. Apply a region of interest (roi) mask
 
-**Step 3:** Complete the project and submit both the Ipython notebook and the project writeup
+    Reduce the image area and noise for further processing by masking all pixels not within an roi boundary (rectangle). All pixels outside the roi are set to 0 (black).
 
-## How to write a README
-A well written README file can enhance your project and portfolio.  Develop your abilities to create professional README files by completing [this free course](https://www.udacity.com/course/writing-readmes--ud777).
+3. Canny edge detection
+
+    Apply the opencv Canny edge detection algorithm to outline objects and shapes in the region of interest. The algorithm will calculate changes of intensity from pixel to pixel (gradient) and mask any pixels with gradients below a give threshold.
+
+
+---
+
+![Canny](./test_images_output/solidYellowCurve-canny.jpg "Canny")
+
+---
+
+1. Blur
+
+    Exaggerate/amplify and blend the edges found from the previous step to increase their resolution, which otherwise might appear too pixelated.
+
+
+---
+
+![Blur](./test_images_output/solidYellowCurve-blur.jpg "Blur")
+
+---
+
+1. Hough line detection
+
+    Apply the opencv Hough line detection algorithm to the amplified edges, which should produce sets of lines within the lane markers on the road. Expect longer lines for the solid lane lines and shorter lines for dashed lane lines. Paramemters of the algorithm include the minimum length of a meaningful line (e.g. a line if 2 pixels is useless) and the ability to consider lines with gaps (dashed) as the same solid line.
+
+
+---
+
+![Hough lines](./test_images_output/solidYellowCurve-hough.jpg "Hough lines")
+
+---
+
+
+##### Lane line calculations
+
+This transformation pipeline will produce a set of lines corresponding to straight edges detected from the image. An assumption is that the lane lines will be represented by a group of these lines clustered together. Further processing reduces the hundreds of lines produced to at most 2 lines representing the right and left lane lines.
+
+1. Extend/project each line to the bottom of the image (y = image_height).
+1. Group the lines into range buckets depending on the x-value of where they land at the bottom (clusters). Lines to the right of the imaginary center line of the image must have a positive slope to qualify, lines to the left must have a negative slope.
+1. Identify the closest clusters on the right and left sides of the imaginary center line of the image.
+1. At this point, there will be two groups of lines, one for each of the right and left lane lines. For each group, calculate the average value of the slope and point of intersection at the bottom of the image. These two lines represent the closest lane lines to the imaginary center of the image.
+1. For videos, keep a history of lane line positions and average those positions from frame to frame for smooth evolution of the lane lines throughout the video.
+
+
+### Limitations
+
+The assumptions used in this processing pipeline introduce a great number of limitations for finding lane lines under natural, uncontrolled road conditions and environments. A few of the more important assumptions:
+
+* Lanes are clearly marked and visible on the road
+* Optimal lighting conditions
+* Edge detection is used to find the lane lines without regard to color or deeper qualifying features of lane markers. For example, flaws in the middle of the lane of the road could be confused as a lane line with this pipeline (Southbound Route 101 near Palo Alto, CA comes to mind).
+* Lane lines slope inward toward the horizon. Entering a steep road looking down might not fit this assumption so nicely (Gough Street in San Francisco comes to mind).
+* Lane lines will be represented by a group of Hough lines clustered together
+* Lane lines can be distinguished by the computer vision algorithms, and have enough contrast from the road to be detected. This assumption caused problems on one of the examples (challenge) where the color of the road became lighter over a concrete bridge. Shadows, lighting and weather can cause such problems as well.
+* Lane lines are straight - curvy roads at high speeds may not give enough signals to expose the lane lines.
+
+
+### Ideas for further work and improvements
+
+Some ideas to overcome a few of the limitations mentioned previously:
+
+* Use color as part of edge detection
+* Allow lane lines to be described by other means than simply groups of straight lines extracted from edge detection. For example, once/if lane lines can be initially established, use frame-to-frame motion detection (MOG, etc) to more accurately evolve the lane direction over time.
+* Use more advanced outlier detection algorithms to discard lane lines that are drastically different from one frame to the next
+* More precise region of interest selection for image processing to reduce background noise
+
+
+### Results
+
+* [Processed images](/test_images_output/)
+* [Processed videos](/test_videos_output/)
 
